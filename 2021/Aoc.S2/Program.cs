@@ -31,7 +31,7 @@ namespace Aoc.S2
                 }
             }
 
-            Console.WriteLine(position.Horizontal * position.Vertical); // S2.1: 1451208
+            Console.WriteLine(position.Horizontal * position.Vertical); // S2.1: 1451208, S2.2: 1620141160
 
         }
     }
