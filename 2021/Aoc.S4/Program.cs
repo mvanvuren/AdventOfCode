@@ -10,7 +10,7 @@ namespace Aoc.S4
     {
         const byte BoardSize = 5;
 
-        static void Main(string[] args)
+        static void Main()
         {
             using var reader = new StreamReader("data.txt");
 
@@ -19,13 +19,13 @@ namespace Aoc.S4
 
             var numbers = line.Split(',').Select(byte.Parse).ToList();
             var boards = new List<byte[,]>();
-            var numbersToBoards = new Dictionary<int, List<Postion>>();
+            var numberPositions = new Dictionary<int, List<Postion>>();
             foreach (var n in Enumerable.Range(0, 100))
             {
-                numbersToBoards[n] = new List<Postion>();
+                numberPositions[n] = new List<Postion>();
             }
             
-            while ((line = reader.ReadLine()) != null)
+            while (reader.ReadLine() != null)
             {
                 var board = new byte[BoardSize, BoardSize];
                 byte row = 0;
@@ -39,7 +39,7 @@ namespace Aoc.S4
                     {
                         board[row, column] = number;
 
-                        numbersToBoards[number].Add(new Postion { BoardIndex = boards.Count, Row = row, Column = column});
+                        numberPositions[number].Add(new Postion { BoardIndex = boards.Count, Row = row, Column = column});
 
                         column++;
                     }
@@ -54,102 +54,58 @@ namespace Aoc.S4
             var numberIndex = 0;
             foreach (var number in numbers)
             {
-                foreach (var position in numbersToBoards[number])
+                foreach (var position in numberPositions[number])
                 {
-                    if (bingoBoards.Contains(position.BoardIndex)) continue;
+                    if (bingoBoards.Contains(position.BoardIndex)) continue; // bingo board
                     
                     var board = boards[position.BoardIndex];
-                    board[position.Row, position.Column] = 0;
-                    if (numberIndex < BoardSize - 1) continue;
+                    board[position.Row, position.Column] = 255;
+                    if (numberIndex < BoardSize - 1) continue; // first 4 numbers no bingo possible
 
-                    var isBingo = IsBingoBoard(board, position.Row, position.Column);
-                    if (isBingo)
-                    {
-                        bingoBoards.Add(position.BoardIndex);
+                    if (!IsBingoBoard(board, position.Row, position.Column)) continue;
 
-                        uint sum = 0;
-                        byte row = 0;
-                        while (row < BoardSize)
-                        {
-                            byte column = 0;
-                            while (column < BoardSize)
-                            {
-                                sum += board[row, column];
-                                column++;
-                            }
+                    bingoBoards.Add(position.BoardIndex);
 
-                            row++;
-                        }
-                        
-                        Console.WriteLine($"board: {position.BoardIndex + 1}, number: {number}, result: {sum * number}");
-                    }
+                    var sum = SumBoard(board);
+
+                    Console.WriteLine($"board: {position.BoardIndex + 1}, number: {number}, result: {sum * number}");
                 }
 
                 numberIndex++;
             }
         }
 
+        static uint SumBoard(byte[,] board)
+        {
+            return (uint)Enumerable.Range(0, BoardSize).Sum(c =>
+                Enumerable.Range(0, BoardSize).Sum(r => (uint)board[(byte)r, (byte)c] != 255 ? (uint)board[(byte)r, (byte)c] : 0));
+        }
+
         static bool IsBingoBoard(byte[,] board, byte row, byte column)
         {
-            byte r;
-            byte c;
-            byte cc;
-
-            if (row == column)
-            { // diagonal from top left to bottom right
-                r = 0;
-                c = 0;
-                cc = 0;
-                while (r < BoardSize)
-                {
-                    if (board[r, c] > 0) break;
-                    cc++;
-                    r++;
-                    c++;
-                }
-                if (cc == BoardSize) return true;
-            }
-
-            if (row + column == BoardSize - 1)
-            { // diagonal from bottom left to top right
-                r = BoardSize - 1;
-                c = 0;
-                cc = 0;
-                while (r < BoardSize)
-                {
-                    if (board[r, c] > 0) break;
-                    cc++;
-                    r++;
-                    c++;
-                }
-                if (cc == BoardSize) return true;
-            }
-
             // vertical
-            r = 0;
-            c = column;
-            cc = 0;
-            while (r < BoardSize)
-            {
-                if (board[r, c] > 0) break;
-                cc++;
-                r++;
-            }
-            if (cc == BoardSize) return true;
+            if (IsBingoLine(board, 0, column, 1, 0)) return true;
 
             // horizontal
-            r = row;
-            c = 0;
-            cc = 0;
-            while (c < BoardSize)
-            {
-                if (board[r, c] > 0) break;
-                cc++;
-                c++;
-            }
-            if (cc == BoardSize) return true;
-
+            if (IsBingoLine(board, row, 0, 0, 1)) return true;
+            
             return false;
+        }
+
+        static bool IsBingoLine(byte[,] board, byte row, byte column, sbyte dr, sbyte dc)
+        {
+            byte count = 0;
+            while (row < BoardSize && column < BoardSize)
+            {
+                if (board[row, column] != 255) break;
+                
+                count++;
+                
+                row = (byte)(row + dr);
+                column = (byte)(column + dc);
+            }
+
+            return count == BoardSize;
         }
     }
     public class Postion
